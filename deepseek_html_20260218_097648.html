@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scroll Speed Video Controller</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #111;
+            color: white;
+        }
+        
+        .info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            padding: 12px 24px;
+            border-radius: 8px;
+            border-left: 4px solid #ff3366;
+            z-index: 100;
+            pointer-events: none;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        
+        .speed-indicator {
+            font-size: 18px;
+            margin-top: 5px;
+            color: #ff3366;
+            font-weight: bold;
+        }
+        
+        .speed-value {
+            font-size: 24px;
+            color: #fff;
+            background: #333;
+            padding: 4px 12px;
+            border-radius: 20px;
+            margin-left: 10px;
+        }
+        
+        .scroll-instruction {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            padding: 15px 30px;
+            border-radius: 50px;
+            border: 1px solid rgba(255,255,255,0.2);
+            z-index: 100;
+            font-size: 18px;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.8; transform: translateX(-50%) scale(1); }
+            50% { opacity: 1; transform: translateX(-50%) scale(1.05); }
+            100% { opacity: 0.8; transform: translateX(-50%) scale(1); }
+        }
+        
+        .scroll-instruction i {
+            margin-right: 10px;
+            font-size: 24px;
+            vertical-align: middle;
+        }
+        
+        .video-container {
+            position: relative;
+            width: 100%;
+            min-height: 300vh; /* Extra height for scrolling */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding-top: 20vh;
+        }
+        
+        .video-wrapper {
+            position: sticky;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 80%;
+            max-width: 900px;
+            margin: 0 auto;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8);
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+        
+        video {
+            width: 100%;
+            height: auto;
+            display: block;
+            background: #000;
+        }
+        
+        .scroll-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(to right, #ff3366, #ffaa33);
+            transform-origin: left;
+            transform: scaleX(0);
+            z-index: 1000;
+        }
+        
+        .footer {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            padding: 50px 20px;
+            background: linear-gradient(to top, #000, transparent);
+            margin-top: -100px;
+        }
+        
+        .footer p {
+            color: #777;
+            font-size: 14px;
+        }
+        
+        .instructions-box {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 14px;
+            border: 1px solid #333;
+            z-index: 100;
+            backdrop-filter: blur(5px);
+            max-width: 250px;
+        }
+        
+        .instructions-box h3 {
+            color: #ff3366;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .instructions-box ul {
+            list-style: none;
+        }
+        
+        .instructions-box li {
+            margin-bottom: 8px;
+            color: #ccc;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .instructions-box li::before {
+            content: "•";
+            color: #ff3366;
+            font-size: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .video-wrapper {
+                width: 95%;
+            }
+            .info {
+                font-size: 14px;
+                padding: 8px 16px;
+            }
+            .instructions-box {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Scroll Progress Bar -->
+    <div class="scroll-progress" id="progressBar"></div>
+    
+    <!-- Speed Info -->
+    <div class="info">
+        <div>🎬 Video Playback Speed</div>
+        <div class="speed-indicator">
+            <span id="speedDisplay">0.00x</span>
+            <span class="speed-value" id="speedValue">0</span>
+        </div>
+        <div style="font-size: 12px; color: #888; margin-top: 5px;" id="scrollDirection">⬆️⬇️ Scroll kar ke dekho</div>
+    </div>
+    
+    <!-- Instructions Box -->
+    <div class="instructions-box">
+        <h3>📌 Kaise kaam karta hai:</h3>
+        <ul>
+            <li>⬇️ Neeche scroll karo - video forward play hoga</li>
+            <li>⬆️ Upar scroll karo - video reverse play hoga</li>
+            <li>⚡ Tez scroll = tez speed</li>
+            <li>🐌 Dheere scroll = dheemi speed</li>
+            <li>⏸️ Scroll band = video ruk jayega</li>
+        </ul>
+    </div>
+    
+    <!-- Main Container -->
+    <div class="video-container">
+        <div class="video-wrapper">
+            <video id="myVideo" preload="auto" playsinline>
+                <!-- GitHub me videos folder mein video1.mp4 rakho -->
+                <source src="videos/video1.mp4" type="video/mp4">
+                <!-- Backup video agar local file na mile to demo ke liye -->
+                <source src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" type="video/mp4">
+                Aapka browser video tag support nahi karta.
+            </video>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>⬆️⬇️ Scroll karte raho - video speed change hoti rahegi ⬆️⬇️</p>
+        <p style="margin-top: 10px;">⚠️ GitHub par video ka sahi path dena: videos/video1.mp4</p>
+    </div>
+    
+    <div class="scroll-instruction">
+        <span>⬇️ ⬆️</span> Scroll karo video play karne ke liye <span>⬆️ ⬇️</span>
+    </div>
+
+    <script>
+        // Video element ko select karo
+        const video = document.getElementById('myVideo');
+        
+        // Variables for scroll tracking
+        let lastScrollY = window.scrollY;
+        let lastScrollTime = Date.now();
+        let scrollSpeed = 0;
+        let animationFrame = null;
+        let lastVideoTime = video.currentTime;
+        let lastUpdateTime = Date.now();
+        
+        // Smoothing factor for speed (0 se 1 ke beech)
+        const SMOOTHING_FACTOR = 0.1;
+        // Maximum scroll speed limit (pixels per second)
+        const MAX_SPEED = 2000;
+        // Maximum video playback rate
+        const MAX_PLAYBACK_RATE = 4.0;
+        
+        // DOM elements for display
+        const speedDisplay = document.getElementById('speedDisplay');
+        const speedValue = document.getElementById('speedValue');
+        const progressBar = document.getElementById('progressBar');
+        const scrollDirectionEl = document.getElementById('scrollDirection');
+        
+        // Video play karo initially, but pause bhi kar sakte hai
+        video.load(); // Video load karo
+        
+        // Pause video initially - sirf scroll karne par play hoga
+        video.pause();
+        
+        // Debug info
+        console.log('Video ready. Scroll karo video play karne ke liye!');
+        
+        // Scroll event listener
+        window.addEventListener('scroll', function() {
+            // Current scroll position
+            const currentScrollY = window.scrollY;
+            const currentTime = Date.now();
+            
+            // Time difference calculate karo
+            const timeDiff = currentTime - lastScrollTime;
+            
+            // Scroll distance calculate karo (absolute)
+            const scrollDiff = currentScrollY - lastScrollY;
+            
+            // Agar time difference valid hai to scroll speed calculate karo
+            if (timeDiff > 0) {
+                // Speed in pixels per second
+                const rawSpeed = Math.abs(scrollDiff) / (timeDiff / 1000);
+                
+                // Speed limit lagao
+                const limitedSpeed = Math.min(rawSpeed, MAX_SPEED);
+                
+                // Normalize speed to 0-1 range (MAX_SPEED ke hisaab se)
+                const normalizedSpeed = limitedSpeed / MAX_SPEED;
+                
+                // Video playback rate me convert karo (1x to MAX_PLAYBACK_RATE)
+                // Agar scroll up ya down dono ke liye forward speed
+                const targetSpeed = 1 + (normalizedSpeed * (MAX_PLAYBACK_RATE - 1));
+                
+                // Smoothing apply karo
+                scrollSpeed = scrollSpeed + (targetSpeed - scrollSpeed) * SMOOTHING_FACTOR;
+                
+                // Video playback rate set karo based on scroll direction
+                if (scrollDiff > 0) {
+                    // Neeche scroll - forward
+                    video.playbackRate = Math.min(scrollSpeed, MAX_PLAYBACK_RATE);
+                    scrollDirectionEl.innerHTML = '⬇️ Neeche scroll - Forward ⬇️';
+                } else if (scrollDiff < 0) {
+                    // Upar scroll - reverse (negative speed)
+                    // Note: playbackRate negative nahi ho sakta, isliye reverse ke liye alag logic
+                    video.playbackRate = Math.min(scrollSpeed, MAX_PLAYBACK_RATE);
+                    scrollDirectionEl.innerHTML = '⬆️ Upar scroll - Reverse ⬆️';
+                }
+                
+                // Update display
+                updateSpeedDisplay(video.playbackRate, scrollDiff);
+                
+                // Handle video playing state
+                if (Math.abs(scrollDiff) > 0.5) { // Thoda sa bhi scroll ho to
+                    if (video.paused) {
+                        video.play().catch(e => console.log('Play error:', e));
+                    }
+                    
+                    // Reverse ke liye alag handling - currentTime manually adjust karo
+                    if (scrollDiff < 0) {
+                        // Reverse mein jana hai
+                        video.currentTime = Math.max(0, video.currentTime - (0.016 * video.playbackRate)); // Approximately 1 frame
+                    }
+                }
+                
+                // Agar scroll nahi ho raha to pause kar denge (baad mein check hoga)
+            }
+            
+            // Update last values
+            lastScrollY = currentScrollY;
+            lastScrollTime = currentTime;
+            
+            // Progress bar update karo
+            const scrollPercent = (window.scrollY) / (document.documentElement.scrollHeight - window.innerHeight);
+            progressBar.style.transform = `scaleX(${scrollPercent})`;
+        });
+        
+        // Continuous check for no-scroll condition
+        function checkScrollStatus() {
+            const currentScrollY = window.scrollY;
+            const currentTime = Date.now();
+            
+            // Agar 200ms se scroll nahi hua to video pause karo
+            if (currentTime - lastScrollTime > 200) {
+                if (!video.paused) {
+                    video.pause();
+                    scrollSpeed = 0;
+                    updateSpeedDisplay(0, 0);
+                    scrollDirectionEl.innerHTML = '⏸️ Scroll nahi ho raha - Video ruka ⏸️';
+                }
+            } else {
+                // Scroll ho raha hai, video play karo agar paused hai
+                if (video.paused && Math.abs(currentScrollY - lastScrollY) > 0.5) {
+                    video.play().catch(e => console.log('Play error:', e));
+                }
+            }
+            
+            // Reverse scroll handling continuously
+            if (currentScrollY < lastScrollY && video.playbackRate > 0) {
+                // Upar scroll ho raha hai - reverse effect
+                video.currentTime = Math.max(0, video.currentTime - (0.016 * video.playbackRate));
+            } else if (currentScrollY > lastScrollY && video.playbackRate > 0) {
+                // Neeche scroll ho raha hai - forward effect (normal)
+                // Video apne aap forward chalega kyunki playbackRate positive hai
+            }
+            
+            // Continue checking
+            requestAnimationFrame(checkScrollStatus);
+        }
+        
+        // Speed display update function
+        function updateSpeedDisplay(rate, scrollDiff) {
+            if (scrollDiff > 0) {
+                speedDisplay.innerHTML = `${rate.toFixed(2)}x ⬇️`;
+                speedValue.innerHTML = rate.toFixed(2);
+            } else if (scrollDiff < 0) {
+                speedDisplay.innerHTML = `${rate.toFixed(2)}x ⬆️ (Reverse)`;
+                speedValue.innerHTML = rate.toFixed(2);
+            } else {
+                speedDisplay.innerHTML = `0.00x ⏸️`;
+                speedValue.innerHTML = '0';
+            }
+        }
+        
+        // Start checking scroll status
+        checkScrollStatus();
+        
+        // Video error handling
+        video.addEventListener('error', function(e) {
+            console.error('Video error:', e);
+            alert('Video load nahi ho raha. Check karo ki videos folder mein video1.mp4 hai ya nahi.\n\nDemo video chal rahi hai.');
+        });
+        
+        // Video loaded successfully
+        video.addEventListener('loadeddata', function() {
+            console.log('Video loaded successfully!');
+        });
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+            }
+        });
+        
+        // Additional smooth scroll for better experience (optional)
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>
